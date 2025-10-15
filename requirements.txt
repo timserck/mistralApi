@@ -1,5 +1,8 @@
+# requirements.txt
 fastapi
 uvicorn[standard]
 transformers
-torch
 accelerate
+# Torch for ARM64 CPU
+-f https://download.pytorch.org/whl/torch_stable.html
+torch
