@@ -3,6 +3,3 @@ fastapi
 uvicorn[standard]
 transformers
 accelerate
-# Torch for ARM64 CPU
--f https://download.pytorch.org/whl/torch_stable.html
-torch
