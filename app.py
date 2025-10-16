@@ -2,23 +2,22 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from llama_cpp import Llama
 
-app = FastAPI(title="Mistral API on Raspberry Pi")
+# Load model at startup
+llm = Llama(
+    model_path="/models/mistral-7b-instruct-v0.2.Q4_K_M.gguf",
+    n_threads=4
+)
 
-# 🧠 Load quantized Mistral model (GGUF format)
-# Place your model in /models folder when running the container
-MODEL_PATH = "/models/mistral-7b-instruct-q4.gguf"
-llm = Llama(model_path=MODEL_PATH, n_ctx=4096, n_threads=4)
+app = FastAPI()
 
-class Prompt(BaseModel):
+class PromptRequest(BaseModel):
     prompt: str
-    max_tokens: int = 200
 
 @app.post("/generate")
-def generate_text(data: Prompt):
+def generate(req: PromptRequest):
     output = llm(
-        data.prompt,
-        max_tokens=data.max_tokens,
-        stop=["</s>"],
+        req.prompt,
+        max_tokens=256,
+        temperature=0.7,
     )
-    text = output["choices"][0]["text"]
-    return {"response": text}
+    return {"response": output["choices"][0]["text"]}
