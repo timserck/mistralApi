@@ -1,5 +1,3 @@
-# requirements.txt
 fastapi
 uvicorn[standard]
-transformers
-accelerate
+llama-cpp-python
