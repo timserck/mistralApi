@@ -2,7 +2,7 @@ FROM python:3.9-slim
 
 # Install dependencies and Rust toolchain
 RUN apt-get update && apt-get install -y \
-    build-essential \
+build-essential \
     cmake \
     pkg-config \
     curl \
@@ -10,6 +10,8 @@ RUN apt-get update && apt-get install -y \
     libclang-dev \
     python3-dev \
     git \
+    rustc \
+    cargo \
     && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y \
     && . "$HOME/.cargo/env" \
     && echo 'source $HOME/.cargo/env' >> ~/.bashrc
