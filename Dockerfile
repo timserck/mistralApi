@@ -1,35 +1,34 @@
-# Base image: lightweight Python
-FROM python:3.10-slim
+# ---- Base image ----
+    FROM python:3.11-slim
 
-# --- 1. Install essential system dependencies ---
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    cmake \
-    git \
-    wget \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
-
-# --- 2. Use piwheels for precompiled Python packages (faster & low-RAM) ---
-RUN mkdir -p /etc/pip && \
-    echo "[global]\nextra-index-url = https://www.piwheels.org/simple" > /etc/pip/pip.conf
-
-# --- 3. Install Python dependencies ---
-RUN pip install --no-cache-dir \
-    fastapi \
-    "uvicorn[standard]" \
-    llama-cpp-python
-
-# --- 4. Add your Mistral 7B model files (or download at runtime) ---
-# Example: download model to /models/mistral-7b
-RUN mkdir -p /models
-# COPY your local model files here if needed
-# Alternatively, download from HuggingFace or other source during container start
-
-# --- 5. Set working directory ---
-WORKDIR /app
-COPY . /app
-
-# --- 6. Expose port and set entrypoint for FastAPI ---
-EXPOSE 8000
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+    # ---- Environment ----
+    ENV PIP_NO_CACHE_DIR=1 \
+        PIP_DISABLE_PIP_VERSION_CHECK=1 \
+        PYTHONUNBUFFERED=1
+    
+    # ---- Install system dependencies ----
+    RUN apt-get update && apt-get install -y \
+        build-essential \
+        cmake \
+        git \
+        curl \
+        libomp-dev \
+        && apt-get clean \
+        && rm -rf /var/lib/apt/lists/*
+    
+    # ---- Use prebuilt wheels ----
+    RUN pip install --upgrade pip setuptools wheel
+    
+    # ---- Install Python packages ----
+    RUN pip install --prefer-binary fastapi "uvicorn[standard]" llama-cpp-python
+    
+    # ---- Copy your app ----
+    WORKDIR /app
+    COPY . /app
+    
+    # ---- Expose port ----
+    EXPOSE 8000
+    
+    # ---- Start the app ----
+    CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+    
