@@ -1,42 +1,53 @@
+# Use Python base image for ARM64
 FROM python:3.10-slim
 
-# Install system dependencies needed for building packages on aarch64
+# Prevent interactive prompts during build
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install system dependencies required by numpy, torch, rust-based packages, etc.
 RUN apt-get update && apt-get install -y \
-    build-essential \
-    cmake \
-    pkg-config \
-    ninja-build \
-    autoconf \
-    automake \
-    libtool \
-    gawk \
-    curl \
-    git \
     python3-dev \
-    rustc \
-    cargo \
+    gfortran \
+    libopenblas-dev \
+    liblapack-dev \
+    build-essential \
+    curl \
+    pkg-config \
+    libssl-dev \
+    libclang-dev \
+    git \
+    cmake \
     && rm -rf /var/lib/apt/lists/*
 
-# Environment variables to make llama-cpp build lighter
-ENV CMAKE_ARGS="-DLLAMA_CUBLAS=OFF -DLLAMA_BLAS=OFF"
-ENV FORCE_CMAKE=1
+# Upgrade pip tools
+RUN pip install --upgrade pip setuptools wheel
 
+# Install numpy from piwheels to avoid heavy build
+RUN pip install --extra-index-url https://www.piwheels.org/simple numpy
+
+# Optional: reduce memory during builds
+ENV NPY_NUM_BUILD_JOBS=1
+
+# (Optional) Install rust if you have packages like maturin that require it
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y \
+    && . "$HOME/.cargo/env" \
+    && echo 'source $HOME/.cargo/env' >> ~/.bashrc
+
+# Add Rust to PATH
+ENV PATH="/root/.cargo/bin:${PATH}"
+
+# Copy your project files
 WORKDIR /app
-
-# Copy dependencies
 COPY requirements.txt .
 
-# Upgrade pip & install Python dependencies
-RUN pip install --upgrade pip
-RUN pip install --verbose -r requirements.txt
+# Install Python dependencies from piwheels when possible
+RUN pip install --extra-index-url https://www.piwheels.org/simple -r requirements.txt
 
-# Copy the app
-COPY app.py .
+# Copy the rest of your code
+COPY . .
 
-# Make sure the models folder exists inside the container
-RUN mkdir -p /models
+# Expose port 8080 (change if needed)
+EXPOSE 8080
 
-EXPOSE 8000
-
-# Start FastAPI
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
+# Start your FastAPI / mistral API server
+CMD ["python", "main.py"]
