@@ -1,42 +1,74 @@
-# ---- Base image ----
+# ---------------------------
+# Base image
+# ---------------------------
     FROM python:3.11-slim
 
-    # ---- Environment ----
-    ENV PIP_NO_CACHE_DIR=1 \
-        PIP_DISABLE_PIP_VERSION_CHECK=1 \
-        PYTHONUNBUFFERED=1 \
-        MODEL_DIR=/app/models
+    # ---------------------------
+    # Environment setup
+    # ---------------------------
+    ENV DEBIAN_FRONTEND=noninteractive
+    ENV LANG=C.UTF-8
+    ENV MODEL_PATH=/models/mistral-7b
     
-    # ---- Install system dependencies ----
-    RUN apt-get update && apt-get install -y \
+    # ---------------------------
+    # Install system dependencies
+    # ---------------------------
+    RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential \
         cmake \
         git \
         curl \
-        libomp-dev \
         wget \
-        && apt-get clean \
-        && rm -rf /var/lib/apt/lists/*
+        llvm \
+        libffi-dev \
+        && apt-get clean && rm -rf /var/lib/apt/lists/*
     
-    # ---- Upgrade pip and install Python packages ----
-    RUN pip install --upgrade pip setuptools wheel
-    RUN pip install --prefer-binary fastapi "uvicorn[standard]" llama-cpp-python
+    # ---------------------------
+    # Upgrade pip
+    # ---------------------------
+    RUN python -m pip install --upgrade pip setuptools wheel
     
-    # ---- Create model folder ----
-    RUN mkdir -p $MODEL_DIR
+    # ---------------------------
+    # Pre-install llama-cpp-python wheel (avoid compiling in container)
+    # ---------------------------
+    # You can download prebuilt wheels from PyPI or piwheels if needed
+    RUN pip install --no-cache-dir llama-cpp-python
     
-    # ---- Copy your app ----
-    WORKDIR /app
-    COPY . /app
+    # ---------------------------
+    # Install FastAPI + Uvicorn
+    # ---------------------------
+    RUN pip install --no-cache-dir \
+        fastapi \
+        "uvicorn[standard]" \
+        huggingface_hub
     
-    # ---- Expose port ----
+    # ---------------------------
+    # Create model directory
+    # ---------------------------
+    RUN mkdir -p $MODEL_PATH
+    
+    # ---------------------------
+    # Download Mistral 7B model (example)
+    # ---------------------------
+    RUN python -c "from huggingface_hub import snapshot_download; snapshot_download('mistralai/Mistral-7B-v0.1', cache_dir='$MODEL_PATH')"
+    
+    # ---------------------------
+    # Expose FastAPI port
+    # ---------------------------
     EXPOSE 8000
     
-    # ---- Download Mistral 7B weights (example using huggingface) ----
-    # Replace URL with actual weights URL if needed
-    # Optional: Uncomment the next lines if you want auto-download at build
-    # RUN wget -O $MODEL_DIR/mistral-7b.bin "https://huggingface.co/mistralai/Mistral-7B-Instruct-v0/resolve/main/mistral-7b-instruct-v0.bin"
+    # ---------------------------
+    # Set working directory
+    # ---------------------------
+    WORKDIR /app
     
-    # ---- Start FastAPI app ----
+    # ---------------------------
+    # Copy your app
+    # ---------------------------
+    COPY . /app
+    
+    # ---------------------------
+    # Run Uvicorn
+    # ---------------------------
     CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
     
