@@ -12,6 +12,10 @@ RUN apt-get update && apt-get install -y \
     git \
     rustc \
     cargo \
+    autoconf \
+    automake \
+    libtool \
+    gawk \
  && rm -rf /var/lib/apt/lists/*
 
 # Copy Python requirements
