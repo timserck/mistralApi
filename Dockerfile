@@ -1,8 +1,8 @@
 FROM python:3.9-slim
 
-# Install dependencies and Rust toolchain
+# Install dependencies including rustc and cargo from apt
 RUN apt-get update && apt-get install -y \
-build-essential \
+    build-essential \
     cmake \
     pkg-config \
     curl \
@@ -12,17 +12,13 @@ build-essential \
     git \
     rustc \
     cargo \
-    && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y \
-    && . "$HOME/.cargo/env" \
-    && echo 'source $HOME/.cargo/env' >> ~/.bashrc
+ && rm -rf /var/lib/apt/lists/*
 
-ENV PATH="/root/.cargo/bin:${PATH}"
-
-# Upgrade pip and install Python dependencies
+# Copy requirements and install Python deps
 COPY requirements.txt .
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
-# Create model directory and download quantized model
+# Download Mistral model
 RUN mkdir -p /models \
  && curl -L -o /models/mistral-7b-instruct-v0.2.Q4_K_M.gguf \
     https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.2-GGUF/resolve/main/mistral-7b-instruct-v0.2.Q4_K_M.gguf
