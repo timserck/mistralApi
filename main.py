@@ -1,28 +1,19 @@
 from fastapi import FastAPI
 from llama_cpp import Llama
 
-app = FastAPI()
+app = FastAPI(title="Mistral 7B FastAPI API")
 
-# Load the Mistral model
-# Make sure your model file is mounted in /models
-MODEL_PATH = "/models/mistral-7b-q4_k_m.gguf"
+# Load Mistral 7B model
 llm = Llama(
-    model_path=MODEL_PATH,
-    n_ctx=4096,        # context size (adjust if needed)
-    n_threads=4        # adapt to your Pi's cores
+    model_path="/models/mistral7b/mistral-7b.ggmlv3.q4_0.bin",
+    n_threads=4  # Adjust based on your CPU cores
 )
 
 @app.get("/")
-def root():
-    return {"status": "running", "model": "Mistral-7B (quantized)"}
+async def root():
+    return {"message": "Mistral 7B API is running!"}
 
 @app.post("/generate")
-def generate(prompt: str):
-    output = llm(
-        prompt,
-        max_tokens=256,
-        temperature=0.7,
-        top_p=0.95,
-        repeat_penalty=1.1
-    )
-    return {"response": output["choices"][0]["text"].strip()}
+async def generate(prompt: str):
+    output = llm(prompt, max_tokens=256)
+    return {"prompt": prompt, "response": output["text"]}
