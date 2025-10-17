@@ -1,7 +1,7 @@
-# ✅ Use Debian Bookworm as base — better package support on Raspberry Pi
+# Use Debian with good package support
 FROM python:3.10-bullseye
 
-# Install system build dependencies
+# Install build dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
     cmake \
@@ -12,23 +12,23 @@ RUN apt-get update && apt-get install -y \
     gfortran \
     && rm -rf /var/lib/apt/lists/*
 
-# Optional: use piwheels to speed up installs for other Python packages
+# Optional: use piwheels for faster installs on Raspberry Pi
 RUN echo "[global]\nextra-index-url=https://www.piwheels.org/simple" > /etc/pip.conf
 
 # Upgrade pip
 RUN pip install --no-cache-dir --upgrade pip
 
-# Install Python dependencies including llama-cpp-python (this will compile from source)
+# Install FastAPI + llama-cpp-python (compilation here)
 RUN pip install --no-cache-dir fastapi "uvicorn[standard]" llama-cpp-python
 
 # Set working directory
 WORKDIR /app
 
-# Copy your FastAPI application code
+# Copy API code
 COPY main.py /app
 
 # Expose API port
 EXPOSE 8000
 
-# Run FastAPI with Uvicorn
+# Launch FastAPI
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
