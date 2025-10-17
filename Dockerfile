@@ -1,29 +1,38 @@
-FROM python:3.10-slim-bullseye
+# Use a lightweight Python base image compatible with Raspberry Pi aarch64
+FROM python:3.10-slim
 
-# Install system dependencies
+# Install system build dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
     cmake \
-    pkg-config \
-    curl \
-    libopenblas-dev \
     python3-dev \
+    libopenblas-dev \
+    git \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Configure pip to use piwheels (faster for Raspberry Pi)
+# Optional: configure piwheels to speed up other installs
 RUN echo "[global]\nextra-index-url=https://www.piwheels.org/simple" > /etc/pip.conf
 
 # Upgrade pip
-RUN pip install --upgrade pip
+RUN pip install --no-cache-dir --upgrade pip
+
+# Increase swap to help build llama-cpp-python
+# (This is only during build. Can't use swapon in Docker, so we use dphys-swapfile-like workaround)
+# If you have build errors due to memory, build this image with: 
+#   docker build --memory=4g --memory-swap=4g .
+# OR build on host then copy wheel.
 
 # Install Python dependencies
 RUN pip install --no-cache-dir fastapi "uvicorn[standard]" llama-cpp-python
 
-# Create app directory
+# Create working directory
 WORKDIR /app
-COPY . /app
 
-# Expose API port
+# Copy your FastAPI app
+COPY main.py /app
+
+# Expose port
 EXPOSE 8000
 
 # Start server
