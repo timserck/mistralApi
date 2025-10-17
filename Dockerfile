@@ -11,7 +11,7 @@
     ENV MODEL_PATH=/models/mistral-7b
     
     # ---------------------------
-    # Install system dependencies
+    # Install minimal system dependencies
     # ---------------------------
     RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential \
@@ -19,7 +19,6 @@
         git \
         curl \
         wget \
-        llvm \
         libffi-dev \
         && apt-get clean && rm -rf /var/lib/apt/lists/*
     
@@ -29,13 +28,7 @@
     RUN python -m pip install --upgrade pip setuptools wheel
     
     # ---------------------------
-    # Pre-install llama-cpp-python wheel (avoid compiling in container)
-    # ---------------------------
-    # You can download prebuilt wheels from PyPI or piwheels if needed
-    RUN pip install --no-cache-dir llama-cpp-python
-    
-    # ---------------------------
-    # Install FastAPI + Uvicorn
+    # Install FastAPI + Uvicorn + HF Hub
     # ---------------------------
     RUN pip install --no-cache-dir \
         fastapi \
@@ -43,12 +36,18 @@
         huggingface_hub
     
     # ---------------------------
+    # Pre-install llama-cpp-python if a binary wheel is available
+    # ---------------------------
+    # Force pip to use only prebuilt wheels
+    RUN pip install --no-cache-dir --only-binary=:all: llama-cpp-python || echo "Skipping llama-cpp-python build"
+    
+    # ---------------------------
     # Create model directory
     # ---------------------------
     RUN mkdir -p $MODEL_PATH
     
     # ---------------------------
-    # Download Mistral 7B model (example)
+    # Download Mistral 7B model
     # ---------------------------
     RUN python -c "from huggingface_hub import snapshot_download; snapshot_download('mistralai/Mistral-7B-v0.1', cache_dir='$MODEL_PATH')"
     
