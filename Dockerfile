@@ -1,44 +1,48 @@
+# Start from a lightweight Python base
 FROM python:3.10-slim
 
-# Set environment variables to avoid prompts during package installs
+# --- 1. Set environment variables ---
 ENV DEBIAN_FRONTEND=noninteractive
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
+ENV PIP_NO_CACHE_DIR=1
 
-# Install system dependencies
+# --- 2. Install system dependencies ---
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     cmake \
-    git \
-    wget \
-    curl \
+    python3-dev \
     libgomp1 \
+    wget \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
-# Set up pip.conf to use piwheels (for ARM / Raspberry Pi)
-RUN mkdir -p /etc && \
-    echo "[global]\nextra-index-url = https://www.piwheels.org/simple" > /etc/pip.conf
+# --- 3. Optional: create swap for low RAM systems ---
+# This allows pip to compile heavy packages without OOM
+RUN fallocate -l 2G /swapfile || true && \
+    chmod 600 /swapfile || true && \
+    mkswap /swapfile || true && \
+    swapon /swapfile || true
 
-# Upgrade pip and essential Python build tools
-RUN pip install --no-cache-dir --upgrade pip setuptools wheel
+# --- 4. Configure pip to use piwheels (for ARM / Raspberry Pi) ---
+RUN mkdir -p /etc/pip && echo "[global]\nextra-index-url = https://www.piwheels.org/simple" > /etc/pip/pip.conf
 
-# Install Python dependencies
-RUN pip install --no-cache-dir \
-    fastapi \
-    "uvicorn[standard]" \
-    llama-cpp-python
+# --- 5. Copy requirements (if you have a requirements.txt) ---
+# Otherwise, install packages directly
+# COPY requirements.txt /app/requirements.txt
 
-# Download Mistral 7B model automatically (optional, adjust path as needed)
-RUN mkdir -p /models && \
-    wget -O /models/mistral-7b.ggmlv3.q4_0.bin \
-    https://huggingface.co/mistral/Mistral-7B-v0/resolve/main/mistral-7b.ggmlv3.q4_0.bin
+# --- 6. Install Python packages ---
+RUN pip install --upgrade pip setuptools wheel
+RUN pip install fastapi "uvicorn[standard]" llama-cpp-python
 
-# Expose port for FastAPI
-EXPOSE 8000
-
-# Set working directory
+# --- 7. Set working directory ---
 WORKDIR /app
 
-# Copy application files
-COPY . /app
+# --- 8. Copy your app code ---
+# COPY . /app
 
-# Default command to run FastAPI via uvicorn
+# --- 9. Expose port for FastAPI ---
+EXPOSE 8000
+
+# --- 10. Run the API ---
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
