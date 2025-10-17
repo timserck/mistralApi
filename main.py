@@ -3,7 +3,7 @@ from llama_cpp import Llama
 
 app = FastAPI()
 
-# Load your model (mount it into /models)
+# Load your GGUF model — make sure it's mounted into /models
 llm = Llama(model_path="/models/your_model.gguf")
 
 @app.get("/")
