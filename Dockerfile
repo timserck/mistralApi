@@ -1,39 +1,56 @@
-# Use an official Python slim image for ARM
-FROM python:3.10-slim-bullseye
+# Use lightweight Python base image
+FROM python:3.10-slim
 
-# Set environment variables to reduce RAM usage during builds
+# Set environment variables for low RAM builds
 ENV DEBIAN_FRONTEND=noninteractive
-ENV MAKEFLAGS="-j1"
-ENV PIP_NO_CACHE_DIR=1
-ENV PIP_DEFAULT_TIMEOUT=100
+ENV PYTHONUNBUFFERED=1
 
-# Update and install dependencies for Python packages
+# Install necessary build tools and libraries
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
+    gcc \
     gfortran \
-    libopenblas-dev \
-    liblapack-dev \
-    pkg-config \
+    libffi-dev \
+    libssl-dev \
+    libbz2-dev \
+    liblzma-dev \
+    libncurses5-dev \
+    libncursesw5-dev \
+    libreadline-dev \
+    libsqlite3-dev \
     wget \
+    curl \
+    unzip \
+    git \
+    pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
-# Configure pip to use piwheels for prebuilt ARM packages
-RUN mkdir -p /etc/pip.conf && \
-    echo "[global]\nextra-index-url = https://www.piwheels.org/simple" > /etc/pip.conf
+# Create temporary swapfile to avoid memory issues during build
+RUN fallocate -l 1G /swapfile && \
+    chmod 600 /swapfile && \
+    mkswap /swapfile && \
+    swapon /swapfile
 
-# Copy requirements.txt
+# Configure pip to use piwheels (for ARM / low RAM)
+RUN mkdir -p /etc/pip.conf && \
+    echo "[global]\nextra-index-url = https://www.piwheels.org/simple" > /etc/pip.conf/pip.conf
+
+# Copy requirements first for caching
 COPY requirements.txt /tmp/requirements.txt
 
-# Install Python dependencies
+# Upgrade pip & install Python dependencies
 RUN pip install --upgrade pip setuptools wheel && \
-    pip install --no-cache-dir -r /tmp/requirements.txt
+    pip install --verbose -r /tmp/requirements.txt
 
-# Copy your application code
-COPY . /app
+# Turn off swap and remove swapfile to clean up
+RUN swapoff /swapfile && rm /swapfile
+
+# Copy app code
 WORKDIR /app
+COPY . /app
 
-# Expose port (if using an API)
+# Expose app port
 EXPOSE 8000
 
 # Default command
-CMD ["python3", "app.py"]
+CMD ["python", "app.py"]
