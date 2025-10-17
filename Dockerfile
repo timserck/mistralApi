@@ -1,42 +1,39 @@
-FROM python:3.10-slim
+# Use an official Python slim image for ARM
+FROM python:3.10-slim-bullseye
 
+# Set environment variables to reduce RAM usage during builds
 ENV DEBIAN_FRONTEND=noninteractive
+ENV MAKEFLAGS="-j1"
+ENV PIP_NO_CACHE_DIR=1
+ENV PIP_DEFAULT_TIMEOUT=100
 
-# ✅ Install only essential build dependencies
-RUN apt-get update && apt-get install -y \
-    python3-dev \
+# Update and install dependencies for Python packages
+RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     gfortran \
-    curl \
+    libopenblas-dev \
+    liblapack-dev \
     pkg-config \
-    libssl-dev \
-    libclang-dev \
-    git \
-    cmake \
+    wget \
     && rm -rf /var/lib/apt/lists/*
 
-# ✅ Upgrade pip to avoid build issues
-RUN pip install --upgrade pip setuptools wheel
+# Configure pip to use piwheels for prebuilt ARM packages
+RUN mkdir -p /etc/pip.conf && \
+    echo "[global]\nextra-index-url = https://www.piwheels.org/simple" > /etc/pip.conf
 
-# ✅ Install NumPy precompiled for Raspberry Pi (no BLAS needed)
-RUN pip install --extra-index-url https://www.piwheels.org/simple numpy
+# Copy requirements.txt
+COPY requirements.txt /tmp/requirements.txt
 
-# Optional: Rust toolchain if needed by some Python packages
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y \
-    && . "$HOME/.cargo/env" \
-    && echo 'source $HOME/.cargo/env' >> ~/.bashrc
+# Install Python dependencies
+RUN pip install --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir -r /tmp/requirements.txt
 
-ENV PATH="/root/.cargo/bin:${PATH}"
-
+# Copy your application code
+COPY . /app
 WORKDIR /app
-COPY requirements.txt .
 
-# ✅ Install all Python deps (using piwheels to reduce RAM usage)
-RUN pip install --extra-index-url https://www.piwheels.org/simple -r requirements.txt
+# Expose port (if using an API)
+EXPOSE 8000
 
-COPY . .
-
-EXPOSE 8080
-
-# 🏃 Start your FastAPI / Mistral API
-CMD ["python", "main.py"]
+# Default command
+CMD ["python3", "app.py"]
