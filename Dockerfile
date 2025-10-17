@@ -1,33 +1,30 @@
-# Use an official Python base image
-FROM python:3.10-slim
+FROM python:3.10-slim-bullseye
 
-# Install system dependencies needed for Python packages
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        build-essential \
-        curl \
-        git \
-        ca-certificates \
-        libffi-dev \
-        libssl-dev \
-        && rm -rf /var/lib/apt/lists/*
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    pkg-config \
+    curl \
+    libopenblas-dev \
+    python3-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-# Configure pip to use piwheels (prebuilt wheels for ARM / low-RAM)
-RUN mkdir -p /etc/pip && \
-    echo "[global]\nextra-index-url = https://www.piwheels.org/simple" > /etc/pip/pip.conf
+# Configure pip to use piwheels (faster for Raspberry Pi)
+RUN echo "[global]\nextra-index-url=https://www.piwheels.org/simple" > /etc/pip.conf
 
-# Upgrade pip, setuptools, wheel
-RUN pip install --upgrade pip setuptools wheel
+# Upgrade pip
+RUN pip install --upgrade pip
 
-# Copy your requirements file
-COPY requirements.txt .
+# Install Python dependencies
+RUN pip install --no-cache-dir fastapi "uvicorn[standard]" llama-cpp-python
 
-# Install Python dependencies using prebuilt wheels when possible
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy your app code
-COPY . /app
+# Create app directory
 WORKDIR /app
+COPY . /app
 
-# Default command
-CMD ["python", "main.py"]
+# Expose API port
+EXPOSE 8000
+
+# Start server
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
