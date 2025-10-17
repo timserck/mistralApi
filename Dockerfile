@@ -1,36 +1,42 @@
-FROM python:3.9-slim
+FROM python:3.10-slim
 
-# Install system deps, Rust toolchain, and build essentials
+# Install system dependencies needed for building packages on aarch64
 RUN apt-get update && apt-get install -y \
     build-essential \
     cmake \
     pkg-config \
-    curl \
-    libssl-dev \
-    libclang-dev \
-    python3-dev \
-    git \
-    rustc \
-    cargo \
+    ninja-build \
     autoconf \
     automake \
     libtool \
     gawk \
- && rm -rf /var/lib/apt/lists/*
+    curl \
+    git \
+    python3-dev \
+    rustc \
+    cargo \
+    && rm -rf /var/lib/apt/lists/*
 
-# Copy Python requirements
+# Environment variables to make llama-cpp build lighter
+ENV CMAKE_ARGS="-DLLAMA_CUBLAS=OFF -DLLAMA_BLAS=OFF"
+ENV FORCE_CMAKE=1
+
+WORKDIR /app
+
+# Copy dependencies
 COPY requirements.txt .
 
-# Upgrade pip and install dependencies
-RUN pip install --upgrade pip && pip install -r requirements.txt
+# Upgrade pip & install Python dependencies
+RUN pip install --upgrade pip
+RUN pip install --verbose -r requirements.txt
 
-# Create model directory and download quantized Mistral model
-RUN mkdir -p /models \
- && curl -L -o /models/mistral-7b-instruct-v0.2.Q4_K_M.gguf \
-    https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.2-GGUF/resolve/main/mistral-7b-instruct-v0.2.Q4_K_M.gguf
-
-# Copy the API application
+# Copy the app
 COPY app.py .
 
+# Make sure the models folder exists inside the container
+RUN mkdir -p /models
+
 EXPOSE 8000
+
+# Start FastAPI
 CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
