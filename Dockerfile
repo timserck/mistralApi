@@ -8,8 +8,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y \
     python3-dev \
     gfortran \
-    libopenblas-dev \
-    liblapack-dev \
+    libatlas-base-dev \
     build-essential \
     curl \
     pkg-config \
@@ -18,6 +17,7 @@ RUN apt-get update && apt-get install -y \
     git \
     cmake \
     && rm -rf /var/lib/apt/lists/*
+
 
 # Upgrade pip tools
 RUN pip install --upgrade pip setuptools wheel
