@@ -1,48 +1,35 @@
-# Start from a lightweight Python base
+# Base image: lightweight Python
 FROM python:3.10-slim
 
-# --- 1. Set environment variables ---
-ENV DEBIAN_FRONTEND=noninteractive
-ENV LANG=C.UTF-8
-ENV LC_ALL=C.UTF-8
-ENV PIP_NO_CACHE_DIR=1
-
-# --- 2. Install system dependencies ---
+# --- 1. Install essential system dependencies ---
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     cmake \
-    python3-dev \
-    libgomp1 \
-    wget \
     git \
+    wget \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
-# --- 3. Optional: create swap for low RAM systems ---
-# This allows pip to compile heavy packages without OOM
-RUN fallocate -l 2G /swapfile || true && \
-    chmod 600 /swapfile || true && \
-    mkswap /swapfile || true && \
-    swapon /swapfile || true
+# --- 2. Use piwheels for precompiled Python packages (faster & low-RAM) ---
+RUN mkdir -p /etc/pip && \
+    echo "[global]\nextra-index-url = https://www.piwheels.org/simple" > /etc/pip/pip.conf
 
-# --- 4. Configure pip to use piwheels (for ARM / Raspberry Pi) ---
-RUN mkdir -p /etc/pip && echo "[global]\nextra-index-url = https://www.piwheels.org/simple" > /etc/pip/pip.conf
+# --- 3. Install Python dependencies ---
+RUN pip install --no-cache-dir \
+    fastapi \
+    "uvicorn[standard]" \
+    llama-cpp-python
 
-# --- 5. Copy requirements (if you have a requirements.txt) ---
-# Otherwise, install packages directly
-# COPY requirements.txt /app/requirements.txt
+# --- 4. Add your Mistral 7B model files (or download at runtime) ---
+# Example: download model to /models/mistral-7b
+RUN mkdir -p /models
+# COPY your local model files here if needed
+# Alternatively, download from HuggingFace or other source during container start
 
-# --- 6. Install Python packages ---
-RUN pip install --upgrade pip setuptools wheel
-RUN pip install fastapi "uvicorn[standard]" llama-cpp-python
-
-# --- 7. Set working directory ---
+# --- 5. Set working directory ---
 WORKDIR /app
+COPY . /app
 
-# --- 8. Copy your app code ---
-# COPY . /app
-
-# --- 9. Expose port for FastAPI ---
+# --- 6. Expose port and set entrypoint for FastAPI ---
 EXPOSE 8000
-
-# --- 10. Run the API ---
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
