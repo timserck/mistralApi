@@ -2,39 +2,25 @@ FROM python:3.11-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV LANG=C.UTF-8
-ENV MODEL_PATH=/models/mistral-7b
 
-# --- System dependencies ---
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    cmake \
-    git \
-    curl \
-    wget \
-    libffi-dev \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+    build-essential cmake libffi-dev wget && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# --- Configure pip to use piwheels ---
+# Add piwheels (optional)
 RUN mkdir -p /root/.pip && echo "[global]\nextra-index-url = https://www.piwheels.org/simple" > /root/.pip/pip.conf
 
-# --- Upgrade pip ---
 RUN python -m pip install --upgrade pip setuptools wheel
 
-# --- Install llama.cpp bindings & FastAPI ---
-RUN pip install --no-cache-dir \
-    fastapi \
-    "uvicorn[standard]" \
-    huggingface_hub \
-    llama-cpp-python
+# --- Install llama-cpp-python wheel ---
+ADD llama_cpp_python-0.2.76-cp311-cp311-linux_aarch64.whl .
+RUN pip install ./llama_cpp_python-0.2.76-cp311-cp311-linux_aarch64.whl
 
-# --- Create model directory ---
-RUN mkdir -p $MODEL_PATH
+# --- Install other Python deps ---
+RUN pip install fastapi "uvicorn[standard]" huggingface_hub
 
-# --- Download Mistral 7B model ---
-RUN python -c "from huggingface_hub import snapshot_download; snapshot_download('mistralai/Mistral-7B-v0.1', cache_dir='$MODEL_PATH')"
-
-EXPOSE 8000
 WORKDIR /app
 COPY . /app
 
+EXPOSE 8000
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
