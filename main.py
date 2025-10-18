@@ -1,19 +1,35 @@
 from fastapi import FastAPI
-from llama_cpp import Llama
+from transformers import AutoModelForCausalLM, AutoTokenizer
+import torch
 
-app = FastAPI(title="Mistral 7B FastAPI API")
+MODEL_PATH = "/models/mistral-7b"
 
-# Load Mistral 7B model
-llm = Llama(
-    model_path="/models/mistral7b/mistral-7b.ggmlv3.q4_0.bin",
-    n_threads=4  # Adjust based on your CPU cores
-)
+app = FastAPI()
+
+# Load model and tokenizer at startup
+@app.on_event("startup")
+def load_model():
+    global model, tokenizer
+    tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH)
+    model = AutoModelForCausalLM.from_pretrained(
+        MODEL_PATH,
+        torch_dtype=torch.float32,
+        device_map="cpu"
+    )
 
 @app.get("/")
-async def root():
+def root():
     return {"message": "Mistral 7B API is running!"}
 
 @app.post("/generate")
-async def generate(prompt: str):
-    output = llm(prompt, max_tokens=256)
-    return {"prompt": prompt, "response": output["text"]}
+def generate_text(prompt: str):
+    inputs = tokenizer(prompt, return_tensors="pt")
+    outputs = model.generate(
+        **inputs,
+        max_new_tokens=100,
+        do_sample=True,
+        top_p=0.9,
+        temperature=0.7
+    )
+    text = tokenizer.decode(outputs[0], skip_special_tokens=True)
+    return {"prompt": prompt, "response": text}

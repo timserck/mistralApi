@@ -15,7 +15,6 @@
     # ---------------------------
     RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential \
-        cmake \
         git \
         curl \
         wget \
@@ -28,18 +27,14 @@
     RUN python -m pip install --upgrade pip setuptools wheel
     
     # ---------------------------
-    # Install FastAPI + Uvicorn + HF Hub
+    # Install Python packages
     # ---------------------------
     RUN pip install --no-cache-dir \
         fastapi \
         "uvicorn[standard]" \
-        huggingface_hub
-    
-    # ---------------------------
-    # Pre-install llama-cpp-python if a binary wheel is available
-    # ---------------------------
-    # Force pip to use only prebuilt wheels
-    RUN pip install --no-cache-dir --only-binary=:all: llama-cpp-python || echo "Skipping llama-cpp-python build"
+        huggingface_hub \
+        transformers \
+        torch --extra-index-url https://download.pytorch.org/whl/cpu
     
     # ---------------------------
     # Create model directory
