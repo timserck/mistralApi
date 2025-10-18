@@ -1,19 +1,19 @@
 from fastapi import FastAPI
-from transformers import pipeline
+from llama_cpp import Llama
 
 app = FastAPI()
+llm = None
 
-# Load model at startup
 @app.on_event("startup")
 def load_model():
-    global generator
-    generator = pipeline("text-generation", model="mistralai/Mistral-7B-v0.1")
+    global llm
+    llm = Llama(model_path="/models/mistral-7b/ggml-model-q4_0.gguf")  # make sure you have a quantized .gguf model
 
 @app.get("/")
 def home():
-    return {"message": "Mistral 7B API running with PyTorch + Transformers"}
+    return {"message": "Mistral 7B API is running on llama.cpp"}
 
 @app.post("/generate")
 def generate(prompt: str):
-    result = generator(prompt, max_length=100, do_sample=True, temperature=0.7)
-    return {"response": result[0]["generated_text"]}
+    output = llm(prompt, max_tokens=100)
+    return {"response": output["choices"][0]["text"]}
