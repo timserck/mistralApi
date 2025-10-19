@@ -1,61 +1,18 @@
-# ---------------------------
-# Base image
-# ---------------------------
-    FROM node:20-slim
+FROM node:20-bullseye-slim
 
-    # ---------------------------
-    # Environment
-    # ---------------------------
-    ENV DEBIAN_FRONTEND=noninteractive
-    ENV LANG=C.UTF-8
-    ENV MODEL_PATH=/models/mistral-7b
-    
-    # ---------------------------
-    # Install system dependencies
-    # ---------------------------
-    RUN apt-get update && apt-get install -y --no-install-recommends \
-        build-essential \
-        cmake \
-        wget \
-        git \
-        python3 \
-        python3-pip \
-        && apt-get clean && rm -rf /var/lib/apt/lists/*
-    
-    # ---------------------------
-    # Install Node.js dependencies
-    # ---------------------------
-    WORKDIR /app
-    COPY package*.json ./
-    
-    RUN npm config set registry https://registry.npmjs.org/
-    RUN npm cache clean --force
-    RUN npm install
-    
-    # ---------------------------
-    # Copy app source code
-    # ---------------------------
-    COPY . /app
-    
-    # ---------------------------
-    # Create model directory
-    # ---------------------------
-    RUN mkdir -p $MODEL_PATH
-    
-    # ---------------------------
-    # Download Mistral 7B model (ggml quantized)
-    # ---------------------------
-    # You must provide a ggml version compatible with llama.cpp
-    # Example: wget -O $MODEL_PATH/ggml-model.bin <link-to-ggml-model>
-    # RUN wget -O $MODEL_PATH/ggml-model.bin <URL>
-    
-    # ---------------------------
-    # Expose API port
-    # ---------------------------
-    EXPOSE 8000
-    
-    # ---------------------------
-    # Start Node.js server
-    # ---------------------------
-    CMD ["node", "index.js"]
-    
+WORKDIR /app
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential cmake git wget curl libssl-dev \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+COPY package.json package-lock.json* ./
+
+# Force npm to build llama-cpp-node from source
+RUN npm install --build-from-source
+
+COPY . .
+
+EXPOSE 8000
+CMD ["node", "index.js"]
