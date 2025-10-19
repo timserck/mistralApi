@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "dependencies": {
-    "fastify": "^4.30.1",
+    "fastify": "4.29.0",
     "llama-cpp-node": "^0.3.0"
   }
 }
