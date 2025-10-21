@@ -3,7 +3,7 @@ FROM node:20-bullseye
 
 WORKDIR /app
 
-# Install system dependencies (without old CMake)
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
     git \
@@ -14,17 +14,15 @@ RUN apt-get update && apt-get install -y \
     python3-pip \
     ninja-build \
     ca-certificates \
+    apt-transport-https \
+    gnupg \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Upgrade CMake to 3.27+ (ARM compatible)
-RUN mkdir -p /opt/cmake \
-    && wget https://github.com/Kitware/CMake/releases/download/v3.27.8/cmake-3.27.8-linux-aarch64.sh \
-    && chmod +x cmake-3.27.8-linux-aarch64.sh \
-    && ./cmake-3.27.8-linux-aarch64.sh --skip-license --prefix=/opt/cmake \
-    && rm cmake-3.27.8-linux-aarch64.sh
-
-# Add CMake to PATH
-ENV PATH="/opt/cmake/bin:$PATH"
+# Add Kitware APT repo for latest CMake
+RUN wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc | gpg --dearmor - | tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null \
+    && echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/debian/ bullseye main' > /etc/apt/sources.list.d/kitware.list \
+    && apt-get update && apt-get install -y cmake \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Verify CMake and glibc
 RUN cmake --version && ldd --version
@@ -33,7 +31,7 @@ RUN cmake --version && ldd --version
 COPY package.json package-lock.json* ./
 
 # Force system cmake for node-llama-cpp
-ENV PATH="/usr/bin:$PATH:/opt/cmake/bin"
+ENV PATH="/usr/bin:$PATH"
 
 # Install Node dependencies from source
 RUN npm install --build-from-source
