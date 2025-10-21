@@ -3,7 +3,10 @@ FROM node:20-bullseye
 
 WORKDIR /app
 
-# Install system dependencies (without old CMake)
+# Enable backports for newer packages
+RUN echo "deb http://deb.debian.org/debian bullseye-backports main" >> /etc/apt/sources.list
+
+# Install system dependencies + CMake from backports
 RUN apt-get update && apt-get install -y \
     build-essential \
     git \
@@ -14,24 +17,16 @@ RUN apt-get update && apt-get install -y \
     python3-pip \
     ninja-build \
     ca-certificates \
+    cmake/bullseye-backports \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Upgrade CMake to 3.27+ (ARM compatible) and verify
-RUN mkdir -p /opt/cmake \
-    && wget https://github.com/Kitware/CMake/releases/download/v3.27.8/cmake-3.27.8-linux-aarch64.sh \
-    && chmod +x cmake-3.27.8-linux-aarch64.sh \
-    && ./cmake-3.27.8-linux-aarch64.sh --skip-license --prefix=/opt/cmake \
-    && rm cmake-3.27.8-linux-aarch64.sh \
-    && /opt/cmake/bin/cmake --version \
-    && ldd --version
-
-# Add CMake to PATH for subsequent layers
-ENV PATH="/opt/cmake/bin:$PATH"
+# Verify CMake and glibc
+RUN cmake --version && ldd --version
 
 # Copy package files
 COPY package.json package-lock.json* ./
 
-# Force system CMake for node-llama-cpp
+# Force system cmake for node-llama-cpp
 ENV PATH="/usr/bin:$PATH"
 
 # Install Node dependencies from source
