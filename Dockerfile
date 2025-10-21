@@ -14,8 +14,6 @@ RUN apt-get update && apt-get install -y \
     python3-pip \
     ninja-build \
     ca-certificates \
-    libc6 \
-    libc6-dev \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Upgrade CMake to 3.27+ (ARM compatible)
@@ -23,18 +21,16 @@ RUN mkdir -p /opt/cmake \
     && wget https://github.com/Kitware/CMake/releases/download/v3.27.8/cmake-3.27.8-linux-aarch64.sh \
     && chmod +x cmake-3.27.8-linux-aarch64.sh \
     && ./cmake-3.27.8-linux-aarch64.sh --skip-license --prefix=/opt/cmake \
-    && ln -s /opt/cmake/bin/cmake /usr/bin/cmake \
     && rm cmake-3.27.8-linux-aarch64.sh
 
+# Add CMake to PATH
+ENV PATH="/opt/cmake/bin:$PATH"
+
 # Verify cmake and glibc
-RUN cmake --version \
-    && ldd --version
+RUN cmake --version && ldd --version
 
 # Copy package files
 COPY package.json package-lock.json* ./
-
-# Force system cmake for node-llama-cpp
-ENV PATH="/usr/bin:$PATH"
 
 # Install Node dependencies from source
 RUN npm install --build-from-source
