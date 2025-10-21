@@ -16,21 +16,23 @@ RUN apt-get update && apt-get install -y \
     ca-certificates \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Upgrade CMake to 3.27+ (ARM compatible)
+# Upgrade CMake to 3.27+ (ARM compatible) and verify
 RUN mkdir -p /opt/cmake \
     && wget https://github.com/Kitware/CMake/releases/download/v3.27.8/cmake-3.27.8-linux-aarch64.sh \
     && chmod +x cmake-3.27.8-linux-aarch64.sh \
     && ./cmake-3.27.8-linux-aarch64.sh --skip-license --prefix=/opt/cmake \
-    && rm cmake-3.27.8-linux-aarch64.sh
+    && rm cmake-3.27.8-linux-aarch64.sh \
+    && /opt/cmake/bin/cmake --version \
+    && ldd --version
 
-# Add CMake to PATH
+# Add CMake to PATH for subsequent layers
 ENV PATH="/opt/cmake/bin:$PATH"
-
-# Verify cmake and glibc
-RUN cmake --version && ldd --version
 
 # Copy package files
 COPY package.json package-lock.json* ./
+
+# Force system CMake for node-llama-cpp
+ENV PATH="/usr/bin:$PATH"
 
 # Install Node dependencies from source
 RUN npm install --build-from-source
