@@ -23,13 +23,13 @@ RUN npm install --build-from-source
 # Copy app source
 COPY . .
 
-# Download Mistral 7B ggml model
+# Download Mistral 7B GGUF model (replace outdated GGML)
 RUN mkdir -p /app/models \
-    && wget -O /app/models/ggml-mistral-7b-q4_0.bin \
-       "https://huggingface.co/mistralai/Mistral-7B-v0.1/resolve/main/ggml-mistral-7b-q4_0.bin"
+    && wget -O /app/models/mistral-7b-v0.1.gguf \
+       "https://huggingface.co/TheBloke/Mistral-7B-v0.1-GGUF/resolve/main/mistral-7b-v0.1.gguf"
 
 # Set environment variable for model path
-ENV MODEL_PATH=/app/models
+ENV MODEL_PATH=/app/models/mistral-7b-v0.1.gguf
 
 # Expose Fastify port
 EXPOSE 8000
