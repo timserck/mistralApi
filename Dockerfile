@@ -25,8 +25,8 @@ COPY . .
 
 # Download Mistral 7B GGUF model (replace outdated GGML)
 RUN mkdir -p /app/models \
-    && wget -O /app/models/mistral-7b-v0.1.gguf \
-       "https://huggingface.co/TheBloke/Mistral-7B-v0.1-GGUF/resolve/main/mistral-7b-v0.1.gguf"
+    && wget -O /app/models/mistral-7b-v0.1.Q4_0.gguf \
+       "https://huggingface.co/TheBloke/Mistral-7B-v0.1-GGUF/blob/main/mistral-7b-v0.1.Q4_0.gguf"
 
 # Set environment variable for model path
 ENV MODEL_PATH=/app/models/mistral-7b-v0.1.gguf
