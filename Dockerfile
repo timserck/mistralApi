@@ -1,6 +1,7 @@
-# Use Ubuntu-based Node image (x86_64, glibc available)
-FROM --platform=linux/amd64 node:20-bullseye
+# Use ARM-compatible Node image
+FROM node:20-bullseye
 
+# Set working directory
 WORKDIR /app
 
 # Install system dependencies
@@ -13,17 +14,22 @@ RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
     ninja-build \
-    cmake \
     ca-certificates \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Upgrade CMake to >= 3.19 (ARM64 version)
+RUN wget https://github.com/Kitware/CMake/releases/download/v3.27.8/cmake-3.27.8-linux-aarch64.sh \
+    && chmod +x cmake-3.27.8-linux-aarch64.sh \
+    && ./cmake-3.27.8-linux-aarch64.sh --skip-license --prefix=/usr/local \
+    && rm cmake-3.27.8-linux-aarch64.sh
 
 # Copy package files
 COPY package.json package-lock.json* ./
 
-# Force system cmake for node-llama-cpp
-ENV PATH="/usr/bin:$PATH"
+# Force system CMake for node-llama-cpp
+ENV PATH="/usr/local/bin:$PATH"
 
-# Install Node dependencies from source
+# Install Node dependencies from source (ARM-native)
 RUN npm install --build-from-source
 
 # Copy app source code
