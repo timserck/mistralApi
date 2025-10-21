@@ -1,9 +1,9 @@
-# Use a full Node image with build tools
-FROM node:20-bookworm
+# Use Ubuntu-based Node image (glibc available)
+FROM node:20-bullseye
 
 WORKDIR /app
 
-# Install system dependencies
+# Install dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
     git \
@@ -15,10 +15,6 @@ RUN apt-get update && apt-get install -y \
     ninja-build \
     ca-certificates \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
-
-# Install latest CMake (required by node-llama-cpp)
-RUN wget https://github.com/Kitware/CMake/releases/download/v3.27.8/cmake-3.27.8-linux-x86_64.sh \
-    && sh cmake-3.27.8-linux-x86_64.sh --skip-license --prefix=/usr/local
 
 # Copy package files and install Node dependencies
 COPY package.json package-lock.json* ./
