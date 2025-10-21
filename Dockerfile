@@ -3,7 +3,7 @@ FROM node:20-bullseye
 
 WORKDIR /app
 
-# Install dependencies
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
     git \
@@ -13,14 +13,20 @@ RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
     ninja-build \
+    cmake \
     ca-certificates \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Copy package files and install Node dependencies
+# Copy package files
 COPY package.json package-lock.json* ./
+
+# Force system cmake for node-llama-cpp
+ENV PATH="/usr/bin:$PATH"
+
+# Install Node dependencies from source
 RUN npm install --build-from-source
 
-# Copy app source
+# Copy app source code
 COPY . .
 
 # Download Mistral 7B GGUF model
@@ -34,5 +40,5 @@ ENV MODEL_PATH=/app/models/mistral-7b-v0.1.Q4_0.gguf
 # Expose Fastify port
 EXPOSE 8000
 
-# Start the Node.js server
+# Start Node.js server
 CMD ["node", "index.js"]
