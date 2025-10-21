@@ -1,10 +1,9 @@
-# Use ARM-compatible Node image
+# Use Ubuntu-based Node image (glibc available)
 FROM node:20-bullseye
 
-# Set working directory
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies (without old CMake)
 RUN apt-get update && apt-get install -y \
     build-essential \
     git \
@@ -17,19 +16,23 @@ RUN apt-get update && apt-get install -y \
     ca-certificates \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Upgrade CMake to >= 3.19 (ARM64 version)
+# Upgrade CMake to 3.27+ (ARM compatible)
 RUN wget https://github.com/Kitware/CMake/releases/download/v3.27.8/cmake-3.27.8-linux-aarch64.sh \
     && chmod +x cmake-3.27.8-linux-aarch64.sh \
-    && ./cmake-3.27.8-linux-aarch64.sh --skip-license --prefix=/usr/local \
+    && ./cmake-3.27.8-linux-aarch64.sh --skip-license --prefix=/opt/cmake \
+    && ln -s /opt/cmake/bin/cmake /usr/bin/cmake \
     && rm cmake-3.27.8-linux-aarch64.sh
+
+# Verify cmake
+RUN cmake --version
 
 # Copy package files
 COPY package.json package-lock.json* ./
 
-# Force system CMake for node-llama-cpp
-ENV PATH="/usr/local/bin:$PATH"
+# Force system cmake for node-llama-cpp
+ENV PATH="/usr/bin:$PATH"
 
-# Install Node dependencies from source (ARM-native)
+# Install Node dependencies from source
 RUN npm install --build-from-source
 
 # Copy app source code
