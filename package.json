@@ -1,9 +1,10 @@
 {
   "name": "mistral-node",
   "version": "1.0.0",
+  "type": "module",
   "main": "index.js",
   "dependencies": {
     "fastify": "4.29.0",
-    "@withcatai/llama-cpp-node": "latest"
+    "node-llama-cpp": "^3.13.0"
   }
 }
