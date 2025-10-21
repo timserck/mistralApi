@@ -4,6 +4,6 @@
   "main": "index.js",
   "dependencies": {
     "fastify": "4.29.0",
-    "llama-cpp-node": "^0.3.0"
+    "@withcatai/llama-cpp-node": "latest"
   }
 }

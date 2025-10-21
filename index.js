@@ -1,8 +1,8 @@
 const Fastify = require('fastify');
-const { LlamaCpp } = require('llama-cpp-node');
+const { LlamaCpp } = require('@withcatai/llama-cpp-node'); // 👈 updated import
 const fastify = Fastify();
 
-const modelPath = process.env.MODEL_PATH + '/ggml-model.bin'; // Path to ggml model
+const modelPath = process.env.MODEL_PATH + '/ggml-model.bin'; // Path to your model
 
 async function main() {
   const llama = new LlamaCpp({ model: modelPath });
@@ -13,7 +13,7 @@ async function main() {
       n_predict: 256,
       top_k: 40,
       top_p: 0.9,
-      temperature: 0.8
+      temperature: 0.8,
     });
     reply.send({ text: output });
   });
