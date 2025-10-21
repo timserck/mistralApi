@@ -1,5 +1,5 @@
-# Use Ubuntu-based Node image (ARM64 compatible)
-FROM --platform=linux/arm64 node:20-bullseye
+# Use Ubuntu-based Node image (x86_64, glibc available)
+FROM --platform=linux/amd64 node:20-bullseye
 
 WORKDIR /app
 
@@ -20,8 +20,7 @@ RUN apt-get update && apt-get install -y \
 # Copy package files
 COPY package.json package-lock.json* ./
 
-# Force npm to build node-llama-cpp from source for ARM
-ENV npm_config_arch=arm64
+# Force system cmake for node-llama-cpp
 ENV PATH="/usr/bin:$PATH"
 
 # Install Node dependencies from source
